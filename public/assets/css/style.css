@@ -1,0 +1,949 @@
+/**
+ * IIIT Kota Hostel Management System
+ * Shared Stylesheet (Apple / Stripe Minimalist)
+ * Target: XAMPP, PHP 8+, Vanilla Modern Web
+ */
+
+/* ==============================================================================
+   1. CSS Variables & Design Tokens (:root)
+   ============================================================================== */
+:root {
+  /* Colors: Backgrounds */
+  --bg-page: #fbfbfd;
+  --bg-surface: #ffffff;
+  --bg-subtle: #f5f5f7;
+  --bg-hover: #f0f0f4;
+
+  /* Colors: Text (Deep Slate Hierarchy) */
+  --text-main: #1d1d1f;
+  --text-secondary: #6e6e73;
+  --text-muted: #86868b;
+  --text-inverse: #ffffff;
+
+  /* Colors: Borders & Dividers (Hairline) */
+  --border-hairline: #e5e5ea;
+  --border-subtle: #d2d2d7;
+  --border-focus: #0066cc;
+
+  /* Restrained Accent: Deep Sapphire / Apple Blue (ONE Accent Only) */
+  --accent: #0066cc;
+  --accent-hover: #0055b3;
+  --accent-active: #004494;
+  --accent-subtle: #f0f6ff;
+  --accent-border: #b8d5ff;
+
+  /* Semantic State Colors (Restrained, No Neon) */
+  --color-success: #1b873f;
+  --color-success-bg: #edf7ee;
+  --color-success-border: #c8e6c9;
+
+  --color-warning: #b25e00;
+  --color-warning-bg: #fff8e6;
+  --color-warning-border: #ffe0b2;
+
+  --color-danger: #c92a2a;
+  --color-danger-bg: #fdf2f2;
+  --color-danger-border: #f8b4b4;
+
+  /* Typography Scale */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+
+  --text-xs: 0.75rem;    /* 12px */
+  --text-sm: 0.8125rem;  /* 13px */
+  --text-base: 0.875rem; /* 14px */
+  --text-md: 1rem;       /* 16px */
+  --text-lg: 1.125rem;   /* 18px */
+  --text-xl: 1.25rem;    /* 20px */
+  --text-2xl: 1.5rem;    /* 24px */
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+
+  /* Spacing Scale */
+  --space-1: 0.25rem;  /* 4px */
+  --space-2: 0.5rem;   /* 8px */
+  --space-3: 0.75rem;  /* 12px */
+  --space-4: 1rem;     /* 16px */
+  --space-5: 1.25rem;  /* 20px */
+  --space-6: 1.5rem;   /* 24px */
+  --space-8: 2rem;     /* 32px */
+  --space-10: 2.5rem;  /* 40px */
+  --space-12: 3rem;    /* 48px */
+
+  /* Radii Scale */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  /* Shadows (Subtle, No Neon) */
+  --shadow-subtle: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-dropdown: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-modal: 0 16px 36px rgba(0, 0, 0, 0.12);
+
+  /* Layout Constants */
+  --sidebar-width: 250px;
+  --header-height: 56px;
+
+  /* Timings (Strictly Controlled) */
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+  --transition-slow: 350ms ease;
+}
+
+/* ==============================================================================
+   2. Reset & Base Typography
+   ============================================================================== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: 1.5;
+  color: var(--text-main);
+  background-color: var(--bg-page);
+  min-height: 100vh;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-main);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+}
+
+h1 { font-size: var(--text-2xl); }
+h2 { font-size: var(--text-xl); }
+h3 { font-size: var(--text-lg); }
+h4 { font-size: var(--text-md); }
+
+p {
+  color: var(--text-secondary);
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--accent-hover);
+}
+
+/* Hairline horizontal divider */
+hr, .divider {
+  border: 0;
+  border-top: 1px solid var(--border-hairline);
+  margin: var(--space-6) 0;
+}
+
+/* Utility inline SVGs */
+.icon {
+  display: inline-block;
+  width: 1.125rem;
+  height: 1.125rem;
+  vertical-align: -0.15em;
+  fill: currentColor;
+  flex-shrink: 0;
+}
+
+/* ==============================================================================
+   3. Layout: Sidebar + One Content Column
+   ============================================================================== */
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Fixed Left Sidebar */
+.sidebar {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: var(--sidebar-width);
+  background-color: var(--bg-surface);
+  border-right: 1px solid var(--border-hairline);
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+  transition: transform var(--transition-normal);
+}
+
+.sidebar-header {
+  padding: var(--space-5) var(--space-5) var(--space-4);
+  border-bottom: 1px solid var(--border-hairline);
+}
+
+.brand-title {
+  font-size: var(--text-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-main);
+  letter-spacing: -0.01em;
+}
+
+.brand-subtitle {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: var(--space-1);
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: var(--space-4) var(--space-3);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-medium);
+  border: 1px solid transparent;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+  cursor: pointer;
+  background: transparent;
+  text-align: left;
+  width: 100%;
+}
+
+.nav-link:hover {
+  background-color: var(--bg-subtle);
+  color: var(--text-main);
+}
+
+.nav-link.is-active {
+  background-color: var(--accent-subtle);
+  color: var(--accent);
+  border-color: var(--accent-border);
+}
+
+.sidebar-footer {
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--border-hairline);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+/* Mobile Bar (Hidden on desktop) */
+.mobile-bar {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--header-height);
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-hairline);
+  padding: 0 var(--space-4);
+  align-items: center;
+  justify-content: space-between;
+  z-index: 90;
+}
+
+.mobile-toggle {
+  background: transparent;
+  border: 0;
+  color: var(--text-main);
+  cursor: pointer;
+  padding: var(--space-2);
+  display: flex;
+  align-items: center;
+}
+
+/* Content Column */
+.main-content {
+  margin-left: var(--sidebar-width);
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.content-container {
+  max-width: 1024px;
+  width: 100%;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-8) var(--space-12);
+}
+
+.page-header {
+  margin-bottom: var(--space-8);
+}
+
+.page-header h1 {
+  margin-bottom: var(--space-1);
+}
+
+.page-header p {
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .mobile-bar {
+    display: flex;
+  }
+
+  .sidebar {
+    transform: translateX(-100%);
+    box-shadow: var(--shadow-dropdown);
+  }
+
+  .sidebar.is-open {
+    transform: translateX(0);
+  }
+
+  .main-content {
+    margin-left: 0;
+    padding-top: var(--header-height);
+  }
+
+  .content-container {
+    padding: var(--space-5) var(--space-4);
+  }
+
+  .sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.25);
+    z-index: 95;
+  }
+
+  .sidebar.is-open + .sidebar-backdrop {
+    display: block;
+  }
+}
+
+/* ==============================================================================
+   4. Buttons & Spinner State (.is-loading)
+   ============================================================================== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font-family: inherit;
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+  padding: 0.5625rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+  position: relative;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.btn:disabled,
+.btn.is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Primary Button (Restrained Accent) */
+.btn-primary {
+  background-color: var(--accent);
+  color: var(--text-inverse);
+  border-color: var(--accent);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.btn-primary:active:not(:disabled) {
+  background-color: var(--accent-active);
+  border-color: var(--accent-active);
+}
+
+/* Secondary Button (Minimal Hairline Border) */
+.btn-secondary {
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+  border-color: var(--border-subtle);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: var(--bg-subtle);
+  border-color: var(--border-subtle);
+}
+
+/* Danger Button */
+.btn-danger {
+  background-color: var(--bg-surface);
+  color: var(--color-danger);
+  border-color: var(--color-danger-border);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: var(--color-danger-bg);
+  border-color: var(--color-danger);
+}
+
+/* Ghost Button */
+.btn-ghost {
+  background-color: transparent;
+  color: var(--text-secondary);
+  border-color: transparent;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background-color: var(--bg-subtle);
+  color: var(--text-main);
+}
+
+/* Small Button Size */
+.btn-sm {
+  padding: 0.3125rem 0.625rem;
+  font-size: var(--text-xs);
+  border-radius: var(--radius-sm);
+}
+
+/* Button Spinner Animation during AJAX (.is-loading) */
+.btn.is-loading {
+  pointer-events: none;
+  color: transparent !important;
+}
+
+.btn.is-loading::after {
+  content: "";
+  position: absolute;
+  width: 1rem;
+  height: 1rem;
+  top: 50%;
+  left: 50%;
+  margin: -0.5rem 0 0 -0.5rem;
+  border: 2px solid currentColor;
+  border-radius: var(--radius-full);
+  border-right-color: transparent;
+  animation: spin 600ms linear infinite;
+}
+
+.btn-primary.is-loading::after {
+  border-color: #ffffff;
+  border-right-color: transparent;
+}
+
+.btn-secondary.is-loading::after,
+.btn-ghost.is-loading::after {
+  border-color: var(--text-secondary);
+  border-right-color: transparent;
+}
+
+.btn-danger.is-loading::after {
+  border-color: var(--color-danger);
+  border-right-color: transparent;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ==============================================================================
+   5. Form Controls & Inline Error States
+   ============================================================================== */
+.form-group {
+  margin-bottom: var(--space-5);
+  display: flex;
+  flex-direction: column;
+}
+
+.form-label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-main);
+  margin-bottom: var(--space-2);
+}
+
+.form-hint {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-top: var(--space-1);
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+  font-family: inherit;
+  font-size: var(--text-base);
+  color: var(--text-main);
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.5625rem 0.75rem;
+  line-height: 1.4;
+  width: 100%;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+.form-select {
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236e6e73' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1rem;
+  padding-right: 2.25rem;
+}
+
+.form-textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+/* Inline Error State */
+.form-group.has-error .form-input,
+.form-group.has-error .form-select,
+.form-group.has-error .form-textarea {
+  border-color: var(--color-danger);
+  background-color: #fffdfd;
+}
+
+.form-group.has-error .form-input:focus,
+.form-group.has-error .form-select:focus,
+.form-group.has-error .form-textarea:focus {
+  box-shadow: 0 0 0 3px var(--color-danger-bg);
+}
+
+.form-error {
+  display: none;
+  font-size: var(--text-xs);
+  color: var(--color-danger);
+  margin-top: var(--space-1);
+  font-weight: var(--font-weight-medium);
+}
+
+.form-group.has-error .form-error {
+  display: block;
+}
+
+/* ==============================================================================
+   6. Tables with Hairline Rows & Fade-Out
+   ============================================================================== */
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-6);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: var(--text-base);
+}
+
+.table th {
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  background: var(--bg-subtle);
+  border-bottom: 1px solid var(--border-hairline);
+}
+
+.table td {
+  padding: var(--space-4) var(--space-4);
+  border-bottom: 1px solid var(--border-hairline);
+  color: var(--text-main);
+  vertical-align: middle;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.table tbody tr:hover td {
+  background-color: var(--bg-subtle);
+}
+
+/* Row Fade-out animation on approve / reject */
+.table tr.row-fade-out {
+  opacity: 0;
+  transform: translateX(12px);
+  pointer-events: none;
+  transition: opacity var(--transition-normal), transform var(--transition-normal);
+}
+
+/* ==============================================================================
+   7. Status Badges & Color Transition
+   ============================================================================== */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-medium);
+  line-height: 1;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-full);
+  border: 1px solid transparent;
+  white-space: nowrap;
+  transition: background-color var(--transition-normal), color var(--transition-normal), border-color var(--transition-normal);
+}
+
+.badge-pending {
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning);
+  border-color: var(--color-warning-border);
+}
+
+.badge-in-progress {
+  background-color: var(--accent-subtle);
+  color: var(--accent);
+  border-color: var(--accent-border);
+}
+
+.badge-resolved,
+.badge-approved {
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
+  border-color: var(--color-success-border);
+}
+
+.badge-rejected {
+  background-color: var(--color-danger-bg);
+  color: var(--color-danger);
+  border-color: var(--color-danger-border);
+}
+
+/* ==============================================================================
+   8. Modal + Backdrop (Fade & Scale)
+   ============================================================================== */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--transition-normal), visibility var(--transition-normal);
+}
+
+.modal-backdrop.is-active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-modal);
+  width: 100%;
+  max-width: 520px;
+  overflow: hidden;
+  transform: scale(0.96);
+  opacity: 0;
+  transition: transform var(--transition-normal), opacity var(--transition-normal);
+}
+
+.modal-backdrop.is-active .modal {
+  transform: scale(1);
+  opacity: 1;
+}
+
+.modal-header {
+  padding: var(--space-5) var(--space-6);
+  border-bottom: 1px solid var(--border-hairline);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-main);
+}
+
+.modal-close {
+  background: transparent;
+  border: 0;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-close:hover {
+  color: var(--text-main);
+}
+
+.modal-body {
+  padding: var(--space-6);
+  max-height: calc(85vh - 140px);
+  overflow-y: auto;
+}
+
+.modal-footer {
+  padding: var(--space-4) var(--space-6);
+  border-top: 1px solid var(--border-hairline);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  background: var(--bg-subtle);
+}
+
+/* ==============================================================================
+   9. Toast Container (Slide-in, 3s Auto-Dismiss)
+   ============================================================================== */
+.toast-container {
+  position: fixed;
+  top: var(--space-5);
+  right: var(--space-5);
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  pointer-events: none;
+  max-width: 360px;
+  width: calc(100% - 2 * var(--space-5));
+}
+
+.toast {
+  pointer-events: auto;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-dropdown);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  animation: toastSlideIn var(--transition-normal) forwards;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+.toast.toast-hiding {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.toast-success {
+  border-left: 3px solid var(--color-success);
+}
+
+.toast-error {
+  border-left: 3px solid var(--color-danger);
+}
+
+.toast-info {
+  border-left: 3px solid var(--accent);
+}
+
+.toast-icon {
+  flex-shrink: 0;
+}
+
+.toast-success .toast-icon { color: var(--color-success); }
+.toast-error .toast-icon { color: var(--color-danger); }
+.toast-info .toast-icon { color: var(--accent); }
+
+.toast-message {
+  flex: 1;
+  word-break: break-word;
+}
+
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ==============================================================================
+   10. Star Rating (Hover / Pop Animation)
+   ============================================================================== */
+.star-rating {
+  display: inline-flex;
+  gap: var(--space-1);
+}
+
+.star-rating-btn {
+  background: transparent;
+  border: 0;
+  padding: var(--space-1);
+  color: var(--border-subtle);
+  cursor: pointer;
+  transition: transform var(--transition-fast), color var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.star-rating-btn svg {
+  width: 1.5rem;
+  height: 1.5rem;
+  fill: currentColor;
+}
+
+/* Hover and Pop effect */
+.star-rating-btn:hover {
+  transform: scale(1.28);
+  color: #f5a623;
+}
+
+.star-rating-btn:active {
+  transform: scale(1.08);
+}
+
+.star-rating-btn.is-active {
+  color: #f5a623;
+}
+
+/* ==============================================================================
+   11. Section Fade on Tab Switch (.fade-in)
+   ============================================================================== */
+.fade-in {
+  animation: sectionFadeIn var(--transition-normal) ease-out forwards;
+}
+
+@keyframes sectionFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ==============================================================================
+   12. Skeleton & Empty State Text
+   ============================================================================== */
+.empty-state {
+  padding: var(--space-10) var(--space-6);
+  text-align: center;
+  border: 1px dashed var(--border-hairline);
+  border-radius: var(--radius-lg);
+  background-color: var(--bg-surface);
+}
+
+.empty-state-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  margin: 0 auto var(--space-3);
+  color: var(--text-muted);
+}
+
+.empty-state-title {
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-main);
+  margin-bottom: var(--space-1);
+}
+
+.empty-state-text {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  max-width: 380px;
+  margin: 0 auto;
+}
+
+/* Skeleton Loading Shimmer */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f4 25%, #e8e8ed 50%, #f0f0f4 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.5s infinite;
+  border-radius: var(--radius-sm);
+  display: inline-block;
+}
+
+.skeleton-text {
+  height: 0.875rem;
+  margin-bottom: 0.5rem;
+  width: 100%;
+}
+
+.skeleton-text.short {
+  width: 60%;
+}
+
+@keyframes skeletonShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ==============================================================================
+   13. Accessibility: prefers-reduced-motion
+   ============================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .star-rating-btn:hover {
+    transform: none !important;
+  }
+}
+
