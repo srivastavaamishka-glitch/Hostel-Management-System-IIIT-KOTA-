@@ -2,7 +2,11 @@
 /**
  * Resolve Lost & Found Listing API Endpoint
  * IIIT Kota Hostel Management System
- * Enforces strict server-side poster ownership verification before allowing resolution.
+ *
+ * Authorisation rules:
+ *   - Students: may resolve only their own listing.
+ *   - Staff (warden / caretaker): may resolve any active listing in their hostel.
+ * Cross-hostel operations are always rejected.
  */
 
 declare(strict_types=1);
@@ -14,14 +18,23 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     json_out(false, null, 'Method not allowed', 405);
 }
 
-// Student authentication & CSRF verification
-$auth = requireAuth('student');
+// Require authentication (student OR staff) and CSRF token
+$auth = requireAuth();
 csrf_verify();
 
-$studentId     = (int)$_SESSION['user_id'];
-$sessionHostel = (string)$_SESSION['hostel_type'];
+$sessionRole   = (string)$_SESSION['role'];
+$sessionUserId = (int)$_SESSION['user_id'];
+$sessionHostel = (string)($_SESSION['hostel_type'] ?? '');
 
-$input = request_data();
+// Determine caller type
+$isStaff   = in_array($sessionRole, ['warden', 'caretaker'], true);
+$isStudent = ($sessionRole === 'student');
+
+if (!$isStaff && !$isStudent) {
+    json_out(false, null, 'Forbidden: insufficient permissions.', 403);
+}
+
+$input  = request_data();
 $postId = isset($input['id']) && is_numeric($input['id']) ? (int)$input['id'] : 0;
 if ($postId <= 0) {
     json_out(false, null, 'Invalid listing ID provided.', 400);
@@ -43,14 +56,14 @@ try {
         json_out(false, null, 'Listing not found.', 404);
     }
 
-    // Strict Ownership Verification (Must be poster's own listing)
-    if ((int)$item['student_id'] !== $studentId) {
-        json_out(false, null, 'Forbidden: You can only resolve your own listings.', 403);
-    }
-
-    // Cross-hostel guard
+    // Cross-hostel guard (applies to both students and staff)
     if ($item['hostel_type'] !== $sessionHostel) {
         json_out(false, null, 'Forbidden: Cross-hostel operation denied.', 403);
+    }
+
+    // Students may only resolve their own listing
+    if ($isStudent && (int)$item['student_id'] !== $sessionUserId) {
+        json_out(false, null, 'Forbidden: You can only resolve your own listings.', 403);
     }
 
     if ($item['status'] === 'resolved') {
@@ -70,4 +83,3 @@ try {
     error_log('Lost and Found Resolve DB Error: ' . $e->getMessage());
     json_out(false, null, 'Failed to update listing.', 500);
 }
-

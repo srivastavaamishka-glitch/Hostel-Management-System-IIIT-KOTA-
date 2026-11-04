@@ -34,7 +34,7 @@ Built with **plain HTML/CSS/JS + PHP 8 (PDO) + MySQL**, targeting **XAMPP**. No 
 | **Notices** | View notices for own hostel | Wardens: post and delete notices |
 | **Mess Menu** | View shared weekly menu; rate today's meals (once per meal per day) | Wardens: edit menu items inline |
 | **Mess Analytics** | — | View average ratings and feedback counts by day/meal |
-| **Lost & Found** | Report lost/found items with optional photo (JPG/PNG/WebP, max 2 MB); view hostel listings; mark **own** posts resolved | — |
+| **Lost & Found** | Report lost/found items with optional photo (JPG/PNG/WebP, max 2 MB); view hostel listings; mark **own** posts resolved | View all hostel listings; mark **any** active listing resolved |
 | **Student Approval** | View own status (pending / approved / rejected) | Wardens: approve or reject pending registrations |
 | **Emergency Contacts** | View hostel emergency contacts | — |
 
@@ -389,7 +389,7 @@ Students must register via the **Sign Up** tab on `index.php`. The college ID mu
 
 **Gender** is chosen on the signup form and determines the hostel (`male` → boys, `female` → girls) — the ID format does not encode hostel.
 
-**Password rule:** minimum 8 characters. No complexity requirement is enforced by the backend.
+**Password rule:** minimum 8 characters, at least one uppercase letter, one lowercase letter, one digit, and one special character (e.g. `Hostel@2025`). Enforced identically in `api/auth_signup.php` and in the live feedback shown in the sign-up form.
 
 ---
 
@@ -399,7 +399,7 @@ Students must register via the **Sign Up** tab on `index.php`. The college ID mu
 
 - Go to `http://localhost/hostel/public/index.php` → **Sign Up** tab.
 - College ID: `2025kucs001@iiitkota.ac.in`
-- Password: `testpass1` (or any string ≥ 8 characters)
+- Password: `Hostel@2025` (must be ≥ 8 chars with uppercase, lowercase, digit, special char)
 - Gender: Male (assigns boys hostel server-side)
 - Branch: CSE, Room: A-101
 - Submit → "Registration submitted. Awaiting warden approval."
@@ -424,6 +424,7 @@ Students must register via the **Sign Up** tab on `index.php`. The college ID mu
 
 - Log in as `caretaker_boys` / `CaretakerBoys@123`.
 - **Complaints** → update status to "in-progress", then "resolved". Badge color transitions.
+- **Lost & Found** → go to the Lost & Found tab; view all hostel listings. Click **Mark Resolved** on any active listing — staff may resolve any item in their hostel (not just their own).
 
 ### 6. Test warden-only features
 
@@ -463,7 +464,7 @@ All endpoints return `{"ok": bool, "data"?: ..., "error"?: string}`. All mutatin
 | `api/mess_analytics.php` | GET | staff | Rating analytics |
 | `api/lostfound_create.php` | POST | student | Report lost/found item (optional image upload) |
 | `api/lostfound_list.php` | GET | any | Hostel lost & found listings |
-| `api/lostfound_resolve.php` | POST | student (own posts only) | Mark own listing resolved |
+| `api/lostfound_resolve.php` | POST | student (own) or staff (any in hostel) | Mark listing resolved |
 | `api/media.php` | GET | authenticated | Stream complaint or lost-found attachment |
 | `api/student_pending.php` | GET | staff | Pending registrations |
 | `api/student_decide.php` | POST | warden | Approve or reject student |
@@ -628,8 +629,8 @@ Ensure cookies are enabled in your browser for `localhost`. Sessions use `HttpOn
 
 ## Known Limitations
 
-- **Lost & Found resolve:** only the student who posted can mark it resolved (by design). Staff cannot mark it resolved from the staff portal — this is enforced both server-side (ownership check in `api/lostfound_resolve.php`) and client-side (button only shown when `item.is_owner`).
-- **No password complexity requirement:** the backend only requires passwords ≥ 8 characters. No uppercase/digit/symbol rule is enforced.
+- **Lost & Found resolve:** students can resolve only their own listings. Staff (warden or caretaker) can resolve any active listing in their hostel — useful when a poster leaves or is expelled.
+- **Password complexity:** enforced client-side (live feedback) and server-side (PHP). Rules: min 8 characters, at least one uppercase letter, one lowercase letter, one digit, and one special character.
 - **No email verification:** college ID format is validated by regex but no actual email is sent.
 - **snacks meal type:** not in the current schema. See [Upgrading an Existing Database](#upgrading-an-existing-database) to add it.
 - **PHP built-in server not supported:** `uploads/.htaccess` has no effect without Apache. Use XAMPP only.

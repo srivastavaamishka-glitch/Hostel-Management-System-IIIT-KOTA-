@@ -440,16 +440,45 @@ $commonContacts = $contactsData['common'] ?? [];
 
   <template id="template-lost_found">
     <div class="page-header">
-      <h1>Lost &amp; Found Item Directory</h1>
-      <p>Resolve student claims and items logged in <?= ucfirst($hostelType) ?> Hostel.</p>
+      <h1>Lost &amp; Found Directory</h1>
+      <p>View and resolve active lost &amp; found listings for <?= ucfirst($hostelType) ?> Hostel. Staff may resolve any active listing.</p>
     </div>
-    <div class="empty-state">
+
+    <!-- Filter Bar -->
+    <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4); flex-wrap: wrap;">
+      <label for="staffLFFilter" style="font-size: var(--text-xs); color: var(--text-secondary); font-weight: var(--font-weight-medium);">Filter:</label>
+      <select class="form-select form-select-sm" id="staffLFFilter" onchange="filterStaffLostFound(this.value)" style="width: auto;">
+        <option value="all">All</option>
+        <option value="active">Active</option>
+        <option value="resolved">Resolved</option>
+        <option value="lost">Lost</option>
+        <option value="found">Found</option>
+      </select>
+    </div>
+
+    <div class="table-container" id="staffLFTableContainer" style="display: none;">
+      <table>
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Photo</th>
+            <th>Date</th>
+            <th>Reported By</th>
+            <th>Status</th>
+            <th style="text-align: right;">Action</th>
+          </tr>
+        </thead>
+        <tbody id="staffLFTableBody"></tbody>
+      </table>
+    </div>
+    <div class="empty-state" id="staffLFEmptyState" style="display: none;">
       <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
         <circle cx="11" cy="11" r="8"></circle>
         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
       </svg>
-      <div class="empty-state-title">Lost &amp; Found Module</div>
-      <div class="empty-state-text">Coming in next phase.</div>
+      <div class="empty-state-title">No listings found</div>
+      <div class="empty-state-text">No lost &amp; found items match the current filter.</div>
     </div>
   </template>
 

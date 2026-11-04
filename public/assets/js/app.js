@@ -1108,7 +1108,11 @@ document.addEventListener('sectionLoaded', (e) => {
       initMessSection();
     }
   } else if (sectionName === 'lost_found') {
-    initLostFoundSection();
+    if (document.getElementById('staffLFTableBody')) {
+      initStaffLostFound();
+    } else {
+      initLostFoundSection();
+    }
   } else if (sectionName === 'approvals') {
     initStaffApprovals();
   } else if (sectionName === 'notices') {
@@ -1119,6 +1123,184 @@ document.addEventListener('sectionLoaded', (e) => {
     clearStudentTimers();
   }
 });
+
+// ------------------------------------------------------------------------------
+// Staff Portal: Lost & Found Management
+// ------------------------------------------------------------------------------
+let staffLFItems = [];
+let staffLFFilter = 'all';
+
+async function initStaffLostFound() {
+  const tableBody      = document.getElementById('staffLFTableBody');
+  const tableContainer = document.getElementById('staffLFTableContainer');
+  const emptyState     = document.getElementById('staffLFEmptyState');
+
+  if (!tableBody) return;
+
+  tableBody.innerHTML = '';
+  if (tableContainer) tableContainer.style.display = 'none';
+  if (emptyState)     emptyState.style.display = 'none';
+
+  try {
+    const res = await fetchJSON('../api/lostfound_list.php');
+    if (!res.ok || !Array.isArray(res.data)) {
+      toast(res.error || 'Failed to load lost and found listings.', 'error');
+      return;
+    }
+
+    staffLFItems = res.data;
+    renderStaffLFTable();
+  } catch (err) {
+    toast('Network error loading lost and found.', 'error');
+  }
+}
+
+function filterStaffLostFound(val) {
+  staffLFFilter = val || 'all';
+  renderStaffLFTable();
+}
+
+function renderStaffLFTable() {
+  const tableBody      = document.getElementById('staffLFTableBody');
+  const tableContainer = document.getElementById('staffLFTableContainer');
+  const emptyState     = document.getElementById('staffLFEmptyState');
+
+  if (!tableBody) return;
+
+  const filtered = staffLFItems.filter((item) => {
+    if (staffLFFilter === 'all')      return true;
+    if (staffLFFilter === 'active')   return item.status === 'active';
+    if (staffLFFilter === 'resolved') return item.status === 'resolved';
+    if (staffLFFilter === 'lost')     return item.type === 'lost';
+    if (staffLFFilter === 'found')    return item.type === 'found';
+    return true;
+  });
+
+  tableBody.innerHTML = '';
+
+  if (filtered.length === 0) {
+    if (tableContainer) tableContainer.style.display = 'none';
+    if (emptyState)     emptyState.style.display = 'flex';
+    return;
+  }
+
+  if (emptyState)     emptyState.style.display = 'none';
+  if (tableContainer) tableContainer.style.display = 'block';
+
+  filtered.forEach((item) => {
+    const tr = document.createElement('tr');
+    tr.id = `staff-lf-${item.id}`;
+
+    // Type badge
+    const tdType = document.createElement('td');
+    const typeBadge = document.createElement('span');
+    typeBadge.className = (item.type === 'found') ? 'badge badge-approved' : 'badge badge-rejected';
+    typeBadge.textContent = item.type.charAt(0).toUpperCase() + item.type.slice(1);
+    tdType.appendChild(typeBadge);
+
+    // Description
+    const tdDesc = document.createElement('td');
+    tdDesc.textContent = item.item_description;
+    tdDesc.style.maxWidth = '220px';
+
+    // Photo
+    const tdPhoto = document.createElement('td');
+    if (item.has_image) {
+      const viewBtn = document.createElement('button');
+      viewBtn.type = 'button';
+      viewBtn.className = 'btn btn-secondary btn-sm';
+      viewBtn.textContent = 'View';
+      viewBtn.onclick = () => openLostFoundImageModal(item.id);
+      tdPhoto.appendChild(viewBtn);
+    } else {
+      tdPhoto.textContent = '—';
+      tdPhoto.style.color = 'var(--text-muted)';
+    }
+
+    // Date
+    const tdDate = document.createElement('td');
+    tdDate.textContent = item.date_logged;
+    tdDate.style.color = 'var(--text-secondary)';
+
+    // Reported by
+    const tdContact = document.createElement('td');
+    tdContact.innerHTML = `
+      <div style="font-weight: var(--font-weight-medium); color: var(--text-main);">${item.contact_email}</div>
+      <div style="color: var(--text-muted);">Room ${item.contact_room || 'N/A'}</div>
+    `;
+
+    // Status badge
+    const tdStatus = document.createElement('td');
+    const statusBadge = document.createElement('span');
+    statusBadge.id = `staff-lf-status-${item.id}`;
+    statusBadge.className = (item.status === 'resolved') ? 'badge badge-resolved' : 'badge badge-pending';
+    statusBadge.textContent = item.status.charAt(0).toUpperCase() + item.status.slice(1);
+    tdStatus.appendChild(statusBadge);
+
+    // Action — staff can resolve any active listing
+    const tdAction = document.createElement('td');
+    tdAction.style.textAlign = 'right';
+
+    if (item.status === 'active') {
+      const resolveBtn = document.createElement('button');
+      resolveBtn.type = 'button';
+      resolveBtn.className = 'btn btn-secondary btn-sm';
+      resolveBtn.id = `staff-lf-btn-${item.id}`;
+      resolveBtn.textContent = 'Mark Resolved';
+      resolveBtn.onclick = () => staffResolveLFItem(item.id, resolveBtn);
+      tdAction.appendChild(resolveBtn);
+    }
+
+    tr.appendChild(tdType);
+    tr.appendChild(tdDesc);
+    tr.appendChild(tdPhoto);
+    tr.appendChild(tdDate);
+    tr.appendChild(tdContact);
+    tr.appendChild(tdStatus);
+    tr.appendChild(tdAction);
+    tableBody.appendChild(tr);
+  });
+}
+
+async function staffResolveLFItem(id, btnEl) {
+  if (btnEl) {
+    btnEl.classList.add('is-loading');
+    btnEl.disabled = true;
+  }
+
+  try {
+    const res = await fetchJSON('../api/lostfound_resolve.php', {
+      method: 'POST',
+      body: { id },
+    });
+
+    if (!res.ok) {
+      toast(res.error || 'Could not resolve listing.', 'error');
+      if (btnEl) { btnEl.classList.remove('is-loading'); btnEl.disabled = false; }
+      return;
+    }
+
+    toast(res.data?.message || 'Item marked as resolved.', 'success');
+
+    // Update in-memory and UI
+    const item = staffLFItems.find((i) => i.id === id);
+    if (item) item.status = 'resolved';
+
+    const badgeEl = document.getElementById(`staff-lf-status-${id}`);
+    if (badgeEl) {
+      badgeEl.className = 'badge badge-resolved';
+      badgeEl.textContent = 'Resolved';
+    }
+    if (btnEl) {
+      btnEl.style.transition = 'opacity var(--transition-fast)';
+      btnEl.style.opacity = '0';
+      setTimeout(() => { if (btnEl.parentElement) btnEl.parentElement.innerHTML = ''; }, 200);
+    }
+  } catch (err) {
+    toast('Network error. Please try again.', 'error');
+    if (btnEl) { btnEl.classList.remove('is-loading'); btnEl.disabled = false; }
+  }
+}
 
 // ------------------------------------------------------------------------------
 // Staff Portal: Student Registration Approvals
@@ -1852,6 +2034,9 @@ window.initStaffApprovals = initStaffApprovals;
 window.initStaffComplaints = initStaffComplaints;
 window.initStaffNotices = initStaffNotices;
 window.filterStaffComplaints = filterStaffComplaints;
+window.initStaffLostFound = initStaffLostFound;
+window.filterStaffLostFound = filterStaffLostFound;
+window.staffResolveLFItem = staffResolveLFItem;
 window.updateStaffComplaintStatus = updateStaffComplaintStatus;
 window.deleteStaffNotice = deleteStaffNotice;
 window.decideStudent = decideStudent;

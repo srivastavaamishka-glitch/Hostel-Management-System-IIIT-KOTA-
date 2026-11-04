@@ -165,8 +165,9 @@ if (!empty($_SESSION['user_id']) && !empty($_SESSION['role'])) {
 
           <div class="form-group">
             <label class="form-label" for="signupPassword">Password</label>
-            <input class="form-input" id="signupPassword" name="password" type="password" minlength="8" placeholder="Minimum 8 characters" required autocomplete="new-password">
-            <div class="form-hint">Must be at least 8 characters.</div>
+            <input class="form-input" id="signupPassword" name="password" type="password" minlength="8" placeholder="Min 8 chars, e.g. Hostel@2025" required autocomplete="new-password">
+            <div class="form-hint">Min 8 characters — must include uppercase, lowercase, digit, and special character (e.g. <code>Hostel@2025</code>).</div>
+            <div class="live-feedback" id="signupPasswordFeedback"></div>
             <div class="form-error"></div>
           </div>
 
@@ -268,6 +269,36 @@ if (!empty($_SESSION['user_id']) && !empty($_SESSION['role'])) {
       });
     }
 
+    // Live Password Complexity Feedback (mirrors server-side rules in api/auth_signup.php)
+    const passwordInput   = document.getElementById('signupPassword');
+    const passwordFeedback = document.getElementById('signupPasswordFeedback');
+
+    function checkPasswordComplexity(val) {
+      if (val.length === 0) return { ok: null, msg: '' };
+      if (val.length < 8)              return { ok: false, msg: 'Too short — minimum 8 characters.' };
+      if (!/[A-Z]/.test(val))          return { ok: false, msg: 'Add at least one uppercase letter (A–Z).' };
+      if (!/[a-z]/.test(val))          return { ok: false, msg: 'Add at least one lowercase letter (a–z).' };
+      if (!/[0-9]/.test(val))          return { ok: false, msg: 'Add at least one digit (0–9).' };
+      if (!/[^A-Za-z0-9]/.test(val))   return { ok: false, msg: 'Add at least one special character (@, #, !, $, …).' };
+      return { ok: true, msg: 'Password meets all requirements.' };
+    }
+
+    if (passwordInput && passwordFeedback) {
+      passwordInput.addEventListener('input', () => {
+        const result = checkPasswordComplexity(passwordInput.value);
+        if (result.ok === null) {
+          passwordFeedback.className = 'live-feedback';
+          passwordFeedback.textContent = '';
+        } else if (result.ok) {
+          passwordFeedback.className = 'live-feedback is-valid';
+          passwordFeedback.textContent = result.msg;
+        } else {
+          passwordFeedback.className = 'live-feedback is-invalid';
+          passwordFeedback.textContent = result.msg;
+        }
+      });
+    }
+
     // Bind Student Login
     bindForm('#studentLoginForm', '../api/auth_login_student.php', (res) => {
       toast('Login successful. Redirecting to student portal...', 'success');
@@ -279,10 +310,14 @@ if (!empty($_SESSION['user_id']) && !empty($_SESSION['role'])) {
     // Bind Student Signup
     bindForm('#studentSignupForm', '../api/auth_signup.php', (res) => {
       toast(res.data.message || 'Registration submitted successfully!', 'success');
-      // Reset live feedback indicator
+      // Reset live feedback indicators
       if (feedbackEl) {
         feedbackEl.className = 'live-feedback';
         feedbackEl.textContent = '';
+      }
+      if (passwordFeedback) {
+        passwordFeedback.className = 'live-feedback';
+        passwordFeedback.textContent = '';
       }
       // Switch back to Student Login tab after successful registration
       setTimeout(() => {

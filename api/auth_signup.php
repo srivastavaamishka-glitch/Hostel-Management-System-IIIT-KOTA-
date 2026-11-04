@@ -35,9 +35,17 @@ if (empty($collegeId)) {
     $fieldErrors['college_id'] = 'Invalid format. Must match 20XXku<branch><roll>@iiit.kota.ac.in (e.g. 2025kucp1010@iiit.kota.ac.in).';
 }
 
-// 2. Validate Password (min 8 characters)
+// 2. Validate Password: min 8 chars, at least one uppercase, one lowercase, one digit, one special character
 if (strlen($password) < 8) {
     $fieldErrors['password'] = 'Password must be at least 8 characters long.';
+} elseif (!preg_match('/[A-Z]/', $password)) {
+    $fieldErrors['password'] = 'Password must contain at least one uppercase letter.';
+} elseif (!preg_match('/[a-z]/', $password)) {
+    $fieldErrors['password'] = 'Password must contain at least one lowercase letter.';
+} elseif (!preg_match('/[0-9]/', $password)) {
+    $fieldErrors['password'] = 'Password must contain at least one digit (0–9).';
+} elseif (!preg_match('/[^A-Za-z0-9]/', $password)) {
+    $fieldErrors['password'] = 'Password must contain at least one special character (e.g. @, #, !, $).';
 }
 
 // 3. Validate Gender
