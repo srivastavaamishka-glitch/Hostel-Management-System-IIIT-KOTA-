@@ -104,6 +104,9 @@ hostel_management/
 > [!NOTE]
 > There is no shared upload helper file. The 2 MB size cap, extension allowlist (jpg/jpeg/png/webp), and finfo MIME verification are implemented inline in `api/complaint_create.php` and `api/lostfound_create.php`.
 
+> [!TIP]
+> **Static Asset Cache-Busting:** `public/index.php`, `public/student.php`, and `public/staff.php` automatically append timestamp query parameters (`?v=<?= filemtime(...) ?>`) to `style.css` and `app.js` so browsers always load updated assets immediately without stale script caching.
+
 ```mermaid
 flowchart LR
     B([Browser]) -->|"fetch / AJAX"| P["public/*.php<br/>Single-page shells"]
@@ -624,9 +627,11 @@ The import ran `CREATE DATABASE IF NOT EXISTS hostel_db` and then `USE hostel_db
 
 A warden must approve the registration first. Log in as a warden and go to the **Student Approvals** tab.
 
-### Changes not showing in browser after editing a file
+### Changes or listings not showing in browser
 
-You may be editing files in one folder while Apache is serving from another (e.g., edited `~/Desktop/hostel_management/` but XAMPP serves from `htdocs/hostel/`). Clone directly into `htdocs/hostel` per Step 2. After confirming the right folder, do a hard refresh: **Ctrl+Shift+R** (Windows/Linux) or **Cmd+Shift+R** (macOS).
+1. **Working directory vs XAMPP web root:** Verify whether you are editing files in your project directory (e.g. `~/Desktop/hostel_management/`) while Apache is serving from `htdocs/hostel/`. Sync the files or clone directly into `htdocs/hostel` per Step 2.
+2. **Browser Asset Caching:** All public pages use `?v=<?= filemtime(...) ?>` cache busters on `style.css` and `app.js`. If you ever see stale interface behavior or 404s on newly added API endpoints, perform a hard refresh: **Ctrl+Shift+R** (Windows/Linux) or **Cmd+Shift+R** (macOS).
+3. **Database Migration:** If Lost & Found listings fail to load or resolve, verify that the `resolved_at` and `resolved_by_role` columns exist in `lost_found` (see [Upgrading an Existing Database](#upgrading-an-existing-database)).
 
 ### File uploads not working
 
