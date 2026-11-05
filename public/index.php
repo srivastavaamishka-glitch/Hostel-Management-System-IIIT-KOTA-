@@ -27,7 +27,7 @@ if (!empty($_SESSION['user_id']) && !empty($_SESSION['role'])) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="csrf" content="<?= htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8') ?>">
   <title>Hostel Portal | IIIT Kota</title>
-  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/style.css?v=<?= filemtime(__DIR__ . '/assets/css/style.css') ?>">
   <style>
     .auth-wrapper {
       min-height: 100vh;
@@ -228,7 +228,7 @@ if (!empty($_SESSION['user_id']) && !empty($_SESSION['role'])) {
     </div>
   </div>
 
-  <script src="assets/js/app.js"></script>
+  <script src="assets/js/app.js?v=<?= filemtime(__DIR__ . '/assets/js/app.js') ?>"></script>
   <script>
     // Tab Switcher
     function switchAuthTab(tabName) {
