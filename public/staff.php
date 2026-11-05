@@ -440,31 +440,46 @@ $commonContacts = $contactsData['common'] ?? [];
 
   <template id="template-lost_found">
     <div class="page-header">
-      <h1>Lost &amp; Found Directory</h1>
-      <p>View and resolve active lost &amp; found listings for <?= ucfirst($hostelType) ?> Hostel. Staff may resolve any active listing.</p>
+      <h1>Lost &amp; Found Desk</h1>
+      <p>Manage lost &amp; found listings for <?= ucfirst($hostelType) ?> Hostel.</p>
     </div>
 
     <!-- Filter Bar -->
     <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4); flex-wrap: wrap;">
-      <label for="staffLFFilter" style="font-size: var(--text-xs); color: var(--text-secondary); font-weight: var(--font-weight-medium);">Filter:</label>
-      <select class="form-select form-select-sm" id="staffLFFilter" onchange="filterStaffLostFound(this.value)" style="width: auto;">
+      <label for="staffLFTypeFilter" style="font-size: var(--text-xs); color: var(--text-secondary); font-weight: var(--font-weight-medium);">Type:</label>
+      <select class="form-select form-select-sm" id="staffLFTypeFilter" onchange="applyStaffLFFilters()" style="width: auto;">
         <option value="all">All</option>
-        <option value="active">Active</option>
-        <option value="resolved">Resolved</option>
         <option value="lost">Lost</option>
         <option value="found">Found</option>
       </select>
+
+      <label for="staffLFStatusFilter" style="font-size: var(--text-xs); color: var(--text-secondary); font-weight: var(--font-weight-medium);">Status:</label>
+      <select class="form-select form-select-sm" id="staffLFStatusFilter" onchange="applyStaffLFFilters()" style="width: auto;">
+        <option value="active" selected>Active</option>
+        <option value="resolved">Resolved</option>
+        <option value="all">All</option>
+      </select>
+
+      <input class="form-input" id="staffLFSearch" type="search" placeholder="Search description or ID…" oninput="applyStaffLFFilters()" style="width: 220px; height: 32px; padding: 0 var(--space-2); font-size: var(--text-sm);">
+      <span id="staffLFCount" style="font-size: var(--text-xs); color: var(--text-secondary); margin-left: auto;"></span>
     </div>
 
+    <!-- Loading state -->
+    <div id="staffLFLoading" style="display: none; padding: var(--space-6); text-align: center; color: var(--text-muted);">
+      Loading lost &amp; found listings…
+    </div>
+
+    <!-- Table -->
     <div class="table-container" id="staffLFTableContainer" style="display: none;">
       <table>
         <thead>
           <tr>
-            <th>Type</th>
-            <th>Description</th>
-            <th>Photo</th>
             <th>Date</th>
-            <th>Reported By</th>
+            <th>Type</th>
+            <th>Item Description</th>
+            <th>Posted By</th>
+            <th>Room</th>
+            <th>Photo</th>
             <th>Status</th>
             <th style="text-align: right;">Action</th>
           </tr>
@@ -472,13 +487,15 @@ $commonContacts = $contactsData['common'] ?? [];
         <tbody id="staffLFTableBody"></tbody>
       </table>
     </div>
+
+    <!-- Empty state -->
     <div class="empty-state" id="staffLFEmptyState" style="display: none;">
       <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
         <circle cx="11" cy="11" r="8"></circle>
         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
       </svg>
       <div class="empty-state-title">No listings found</div>
-      <div class="empty-state-text">No lost &amp; found items match the current filter.</div>
+      <div class="empty-state-text">No lost &amp; found items match the current filters.</div>
     </div>
   </template>
 
@@ -499,6 +516,28 @@ $commonContacts = $contactsData['common'] ?? [];
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" onclick="closeModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lost & Found Action Confirmation Modal -->
+  <div class="modal-backdrop" id="lfConfirmModal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="lfConfirmTitle" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="lfConfirmTitle">Confirm Action</h3>
+        <button type="button" class="modal-close" onclick="closeModal()" aria-label="Close modal">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body" style="padding: var(--space-5);">
+        <p id="lfConfirmBody" style="color: var(--text-secondary); margin: 0;"></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button type="button" class="btn btn-primary" id="lfConfirmBtn">Confirm</button>
       </div>
     </div>
   </div>

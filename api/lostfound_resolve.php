@@ -4,7 +4,7 @@
  * IIIT Kota Hostel Management System
  *
  * Authorisation rules:
- *   - Students: may resolve only their own listing.
+ *   - Students: may resolve only their own active listing in their hostel.
  *   - Staff (warden / caretaker): may resolve any active listing in their hostel.
  * Cross-hostel operations are always rejected.
  */
@@ -26,6 +26,10 @@ $sessionRole   = (string)$_SESSION['role'];
 $sessionUserId = (int)$_SESSION['user_id'];
 $sessionHostel = (string)($_SESSION['hostel_type'] ?? '');
 
+if ($sessionHostel === '') {
+    json_out(false, null, 'Hostel assignment missing from session.', 403);
+}
+
 // Determine caller type
 $isStaff   = in_array($sessionRole, ['warden', 'caretaker'], true);
 $isStudent = ($sessionRole === 'student');
@@ -43,41 +47,45 @@ if ($postId <= 0) {
 $pdo = db();
 
 try {
-    $stmt = $pdo->prepare('
-        SELECT id, student_id, hostel_type, status
-        FROM lost_found
-        WHERE id = :id
-        LIMIT 1
-    ');
-    $stmt->execute([':id' => $postId]);
-    $item = $stmt->fetch();
-
-    if (!$item) {
-        json_out(false, null, 'Listing not found.', 404);
+    if ($isStudent) {
+        $stmt = $pdo->prepare('
+            UPDATE lost_found
+            SET status = "resolved", resolved_at = NOW(), resolved_by_role = "student"
+            WHERE id = :id AND student_id = :student_id AND hostel_type = :hostel_type AND status = "active"
+        ');
+        $stmt->execute([
+            ':id'          => $postId,
+            ':student_id'  => $sessionUserId,
+            ':hostel_type' => $sessionHostel,
+        ]);
+    } else {
+        // Staff: role comes strictly from session ('warden' or 'caretaker')
+        $stmt = $pdo->prepare('
+            UPDATE lost_found
+            SET status = "resolved", resolved_at = NOW(), resolved_by_role = :role
+            WHERE id = :id AND hostel_type = :hostel_type AND status = "active"
+        ');
+        $stmt->execute([
+            ':id'          => $postId,
+            ':hostel_type' => $sessionHostel,
+            ':role'        => $sessionRole,
+        ]);
     }
 
-    // Cross-hostel guard (applies to both students and staff)
-    if ($item['hostel_type'] !== $sessionHostel) {
-        json_out(false, null, 'Forbidden: Cross-hostel operation denied.', 403);
+    if ($stmt->rowCount() === 0) {
+        json_out(false, null, 'Not found, already resolved, or not in your hostel.', 400);
     }
 
-    // Students may only resolve their own listing
-    if ($isStudent && (int)$item['student_id'] !== $sessionUserId) {
-        json_out(false, null, 'Forbidden: You can only resolve your own listings.', 403);
-    }
-
-    if ($item['status'] === 'resolved') {
-        json_out(true, ['message' => 'Listing is already resolved.', 'id' => $postId]);
-    }
-
-    // Update status to resolved
-    $updateStmt = $pdo->prepare('UPDATE lost_found SET status = "resolved" WHERE id = :id');
-    $updateStmt->execute([':id' => $postId]);
+    $fetchStmt = $pdo->prepare('SELECT resolved_at, resolved_by_role FROM lost_found WHERE id = :id');
+    $fetchStmt->execute([':id' => $postId]);
+    $updated = $fetchStmt->fetch();
 
     json_out(true, [
-        'message' => 'Item marked as resolved successfully.',
-        'id'      => $postId,
-        'status'  => 'resolved',
+        'message'          => 'Item marked as resolved successfully.',
+        'id'               => $postId,
+        'status'           => 'resolved',
+        'resolved_at'      => $updated ? (string)$updated['resolved_at'] : null,
+        'resolved_by_role' => $updated ? (string)$updated['resolved_by_role'] : ($isStudent ? 'student' : $sessionRole),
     ]);
 } catch (PDOException $e) {
     error_log('Lost and Found Resolve DB Error: ' . $e->getMessage());

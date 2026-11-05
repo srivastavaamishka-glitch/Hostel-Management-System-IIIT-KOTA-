@@ -947,3 +947,13 @@ hr, .divider {
   }
 }
 
+/* Staff Lost & Found Thumbnail */
+.lf-thumbnail {
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+
+.lf-thumbnail:hover {
+  transform: scale(1.08);
+  border-color: var(--color-primary);
+}
+

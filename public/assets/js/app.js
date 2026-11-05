@@ -1093,6 +1093,9 @@ function filterLostFound(filter) {
 // Section Loaded Router for Student & Staff Portals
 document.addEventListener('sectionLoaded', (e) => {
   const sectionName = e.detail?.name;
+  if (sectionName !== 'lost_found') {
+    stopStaffLFTimer();
+  }
   if (sectionName === 'overview') {
     initStudentDashboard();
   } else if (sectionName === 'complaints') {
@@ -1128,53 +1131,119 @@ document.addEventListener('sectionLoaded', (e) => {
 // Staff Portal: Lost & Found Management
 // ------------------------------------------------------------------------------
 let staffLFItems = [];
-let staffLFFilter = 'all';
+let staffLFTimer = null;
+
+function stopStaffLFTimer() {
+  if (staffLFTimer) {
+    clearInterval(staffLFTimer);
+    staffLFTimer = null;
+  }
+}
+
+// Auto-pause timer when browser tab is hidden, resume when visible if on LF desk
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    stopStaffLFTimer();
+  } else if (document.getElementById('staffLFTableBody')) {
+    stopStaffLFTimer();
+    staffLFTimer = setInterval(() => refreshStaffLF(true), 30000);
+  }
+});
 
 async function initStaffLostFound() {
+  stopStaffLFTimer();
+
   const tableBody      = document.getElementById('staffLFTableBody');
   const tableContainer = document.getElementById('staffLFTableContainer');
   const emptyState     = document.getElementById('staffLFEmptyState');
+  const loadingEl      = document.getElementById('staffLFLoading');
 
   if (!tableBody) return;
 
   tableBody.innerHTML = '';
   if (tableContainer) tableContainer.style.display = 'none';
   if (emptyState)     emptyState.style.display = 'none';
+  if (loadingEl)      loadingEl.style.display = 'block';
 
   try {
-    const res = await fetchJSON('../api/lostfound_list.php');
+    const res = await fetchJSON('../api/staff_lostfound_list.php');
+    if (loadingEl) loadingEl.style.display = 'none';
+
     if (!res.ok || !Array.isArray(res.data)) {
       toast(res.error || 'Failed to load lost and found listings.', 'error');
       return;
     }
 
     staffLFItems = res.data;
-    renderStaffLFTable();
+    applyStaffLFFilters();
+
+    // Auto-refresh every 30 seconds while section is open
+    staffLFTimer = setInterval(() => refreshStaffLF(true), 30000);
   } catch (err) {
+    if (loadingEl) loadingEl.style.display = 'none';
     toast('Network error loading lost and found.', 'error');
   }
 }
 
-function filterStaffLostFound(val) {
-  staffLFFilter = val || 'all';
-  renderStaffLFTable();
+async function refreshStaffLF(silent = true) {
+  const tableBody = document.getElementById('staffLFTableBody');
+  if (!tableBody) {
+    stopStaffLFTimer();
+    return;
+  }
+
+  const prevScrollY = window.scrollY;
+
+  try {
+    const res = await fetchJSON('../api/staff_lostfound_list.php');
+    if (!res.ok || !Array.isArray(res.data)) {
+      if (!silent) toast(res.error || 'Failed to load lost and found listings.', 'error');
+      return;
+    }
+
+    staffLFItems = res.data;
+    applyStaffLFFilters();
+    window.scrollTo({ top: prevScrollY, behavior: 'instant' });
+  } catch (err) {
+    if (!silent) toast('Network error refreshing listings.', 'error');
+  }
 }
 
-function renderStaffLFTable() {
+function applyStaffLFFilters() {
   const tableBody      = document.getElementById('staffLFTableBody');
   const tableContainer = document.getElementById('staffLFTableContainer');
   const emptyState     = document.getElementById('staffLFEmptyState');
+  const countEl        = document.getElementById('staffLFCount');
 
   if (!tableBody) return;
 
+  const typeFilter   = document.getElementById('staffLFTypeFilter')?.value || 'all';
+  const statusFilter = document.getElementById('staffLFStatusFilter')?.value || 'active';
+  const query        = (document.getElementById('staffLFSearch')?.value || '').trim().toLowerCase();
+
   const filtered = staffLFItems.filter((item) => {
-    if (staffLFFilter === 'all')      return true;
-    if (staffLFFilter === 'active')   return item.status === 'active';
-    if (staffLFFilter === 'resolved') return item.status === 'resolved';
-    if (staffLFFilter === 'lost')     return item.type === 'lost';
-    if (staffLFFilter === 'found')    return item.type === 'found';
+    // Type filter
+    if (typeFilter !== 'all' && item.type !== typeFilter) {
+      return false;
+    }
+    // Status filter
+    if (statusFilter !== 'all' && item.status !== statusFilter) {
+      return false;
+    }
+    // Search query over item_description or poster college_id
+    if (query !== '') {
+      const descMatch = (item.item_description || '').toLowerCase().includes(query);
+      const idMatch   = (item.college_id || '').toLowerCase().includes(query);
+      if (!descMatch && !idMatch) {
+        return false;
+      }
+    }
     return true;
   });
+
+  if (countEl) {
+    countEl.textContent = `Showing ${filtered.length} of ${staffLFItems.length} items`;
+  }
 
   tableBody.innerHTML = '';
 
@@ -1187,59 +1256,97 @@ function renderStaffLFTable() {
   if (emptyState)     emptyState.style.display = 'none';
   if (tableContainer) tableContainer.style.display = 'block';
 
-  filtered.forEach((item) => {
+  renderStaffLFTableRows(filtered);
+}
+
+function renderStaffLFTableRows(items) {
+  const tableBody = document.getElementById('staffLFTableBody');
+  if (!tableBody) return;
+
+  const userRole = document.body.dataset.role || '';
+  const isWarden = (userRole === 'warden');
+
+  items.forEach((item) => {
     const tr = document.createElement('tr');
     tr.id = `staff-lf-${item.id}`;
 
-    // Type badge
+    // 1. Date
+    const tdDate = document.createElement('td');
+    tdDate.textContent = item.date_logged || '';
+    tdDate.style.whiteSpace = 'nowrap';
+    tdDate.style.color = 'var(--text-secondary)';
+
+    // 2. Type badge
     const tdType = document.createElement('td');
     const typeBadge = document.createElement('span');
     typeBadge.className = (item.type === 'found') ? 'badge badge-approved' : 'badge badge-rejected';
-    typeBadge.textContent = item.type.charAt(0).toUpperCase() + item.type.slice(1);
+    typeBadge.textContent = item.type ? (item.type.charAt(0).toUpperCase() + item.type.slice(1)) : '';
     tdType.appendChild(typeBadge);
 
-    // Description
+    // 3. Item Description
     const tdDesc = document.createElement('td');
-    tdDesc.textContent = item.item_description;
-    tdDesc.style.maxWidth = '220px';
+    tdDesc.textContent = item.item_description || '';
+    tdDesc.style.maxWidth = '260px';
+    tdDesc.style.wordBreak = 'break-word';
 
-    // Photo
+    // 4. Posted By (college ID)
+    const tdPoster = document.createElement('td');
+    tdPoster.textContent = item.college_id || '—';
+    tdPoster.style.fontWeight = 'var(--font-weight-medium)';
+
+    // 5. Room No
+    const tdRoom = document.createElement('td');
+    tdRoom.textContent = item.room_no || '—';
+    tdRoom.style.color = 'var(--text-secondary)';
+
+    // 6. Photo
     const tdPhoto = document.createElement('td');
     if (item.has_image) {
-      const viewBtn = document.createElement('button');
-      viewBtn.type = 'button';
-      viewBtn.className = 'btn btn-secondary btn-sm';
-      viewBtn.textContent = 'View';
-      viewBtn.onclick = () => openLostFoundImageModal(item.id);
-      tdPhoto.appendChild(viewBtn);
+      const img = document.createElement('img');
+      img.src = `../api/media.php?id=${encodeURIComponent(item.id)}&type=lostfound`;
+      img.alt = 'Thumbnail';
+      img.className = 'lf-thumbnail';
+      img.style.width = '36px';
+      img.style.height = '36px';
+      img.style.objectFit = 'cover';
+      img.style.borderRadius = 'var(--radius-sm)';
+      img.style.border = '1px solid var(--border-color)';
+      img.style.cursor = 'pointer';
+      img.title = 'Click to view full photo';
+      img.onclick = () => viewLostFoundMedia(item.id);
+      tdPhoto.appendChild(img);
     } else {
       tdPhoto.textContent = '—';
       tdPhoto.style.color = 'var(--text-muted)';
     }
 
-    // Date
-    const tdDate = document.createElement('td');
-    tdDate.textContent = item.date_logged;
-    tdDate.style.color = 'var(--text-secondary)';
-
-    // Reported by
-    const tdContact = document.createElement('td');
-    tdContact.innerHTML = `
-      <div style="font-weight: var(--font-weight-medium); color: var(--text-main);">${item.contact_email}</div>
-      <div style="color: var(--text-muted);">Room ${item.contact_room || 'N/A'}</div>
-    `;
-
-    // Status badge
+    // 7. Status + Resolved Info
     const tdStatus = document.createElement('td');
     const statusBadge = document.createElement('span');
     statusBadge.id = `staff-lf-status-${item.id}`;
     statusBadge.className = (item.status === 'resolved') ? 'badge badge-resolved' : 'badge badge-pending';
-    statusBadge.textContent = item.status.charAt(0).toUpperCase() + item.status.slice(1);
+    statusBadge.textContent = item.status ? (item.status.charAt(0).toUpperCase() + item.status.slice(1)) : '';
     tdStatus.appendChild(statusBadge);
 
-    // Action — staff can resolve any active listing
+    if (item.status === 'resolved') {
+      const resolvedInfo = document.createElement('div');
+      resolvedInfo.id = `staff-lf-resolved-info-${item.id}`;
+      resolvedInfo.style.fontSize = '11px';
+      resolvedInfo.style.color = 'var(--text-muted)';
+      resolvedInfo.style.marginTop = '4px';
+      resolvedInfo.style.whiteSpace = 'nowrap';
+      if (item.resolved_at) {
+        resolvedInfo.textContent = `Resolved ${item.resolved_at} by ${item.resolved_by_role || 'staff'}`;
+      } else {
+        resolvedInfo.textContent = 'Resolved —';
+      }
+      tdStatus.appendChild(resolvedInfo);
+    }
+
+    // 8. Action
     const tdAction = document.createElement('td');
     tdAction.style.textAlign = 'right';
+    tdAction.id = `staff-lf-action-${item.id}`;
 
     if (item.status === 'active') {
       const resolveBtn = document.createElement('button');
@@ -1247,59 +1354,152 @@ function renderStaffLFTable() {
       resolveBtn.className = 'btn btn-secondary btn-sm';
       resolveBtn.id = `staff-lf-btn-${item.id}`;
       resolveBtn.textContent = 'Mark Resolved';
-      resolveBtn.onclick = () => staffResolveLFItem(item.id, resolveBtn);
+      resolveBtn.onclick = () => promptStaffResolveLF(item.id);
       tdAction.appendChild(resolveBtn);
+    } else if (item.status === 'resolved' && isWarden) {
+      const reopenBtn = document.createElement('button');
+      reopenBtn.type = 'button';
+      reopenBtn.className = 'btn btn-secondary btn-sm';
+      reopenBtn.id = `staff-lf-btn-${item.id}`;
+      reopenBtn.textContent = 'Reopen';
+      reopenBtn.onclick = () => promptStaffReopenLF(item.id);
+      tdAction.appendChild(reopenBtn);
     }
 
+    tr.appendChild(tdDate);
     tr.appendChild(tdType);
     tr.appendChild(tdDesc);
+    tr.appendChild(tdPoster);
+    tr.appendChild(tdRoom);
     tr.appendChild(tdPhoto);
-    tr.appendChild(tdDate);
-    tr.appendChild(tdContact);
     tr.appendChild(tdStatus);
     tr.appendChild(tdAction);
     tableBody.appendChild(tr);
   });
 }
 
-async function staffResolveLFItem(id, btnEl) {
-  if (btnEl) {
-    btnEl.classList.add('is-loading');
-    btnEl.disabled = true;
+function promptStaffResolveLF(id) {
+  const item = staffLFItems.find((i) => i.id === id);
+  const modalTitle = document.getElementById('lfConfirmTitle');
+  const modalBody  = document.getElementById('lfConfirmBody');
+  const confirmBtn = document.getElementById('lfConfirmBtn');
+
+  if (modalTitle) modalTitle.textContent = 'Mark Item as Resolved';
+  if (modalBody)  modalBody.textContent  = 'Mark this item as resolved?';
+
+  if (confirmBtn) {
+    confirmBtn.textContent = 'Confirm';
+    confirmBtn.classList.remove('is-loading');
+    confirmBtn.disabled = false;
+    confirmBtn.onclick = async () => {
+      confirmBtn.classList.add('is-loading');
+      confirmBtn.disabled = true;
+
+      try {
+        const res = await fetchJSON('../api/lostfound_resolve.php', {
+          method: 'POST',
+          body: { id },
+        });
+
+        if (!res.ok) {
+          toast(res.error || 'Could not resolve listing.', 'error');
+          confirmBtn.classList.remove('is-loading');
+          confirmBtn.disabled = false;
+          return;
+        }
+
+        closeModal();
+        toast('Item marked as resolved.', 'success');
+
+        if (item) {
+          item.status = 'resolved';
+          item.resolved_at = res.data?.resolved_at || new Date().toISOString().replace('T', ' ').slice(0, 19);
+          item.resolved_by_role = res.data?.resolved_by_role || (document.body.dataset.role || 'staff');
+        }
+
+        const statusFilter = document.getElementById('staffLFStatusFilter')?.value || 'active';
+        const row = document.getElementById(`staff-lf-${id}`);
+        if (statusFilter === 'active' && row) {
+          row.style.transition = 'opacity var(--transition-normal), transform var(--transition-normal)';
+          row.style.opacity = '0';
+          row.style.transform = 'translateX(-8px)';
+          setTimeout(() => {
+            applyStaffLFFilters();
+          }, 200);
+        } else {
+          applyStaffLFFilters();
+        }
+      } catch (err) {
+        toast('Network error. Please try again.', 'error');
+        confirmBtn.classList.remove('is-loading');
+        confirmBtn.disabled = false;
+      }
+    };
   }
 
-  try {
-    const res = await fetchJSON('../api/lostfound_resolve.php', {
-      method: 'POST',
-      body: { id },
-    });
+  openModal('lfConfirmModal');
+}
 
-    if (!res.ok) {
-      toast(res.error || 'Could not resolve listing.', 'error');
-      if (btnEl) { btnEl.classList.remove('is-loading'); btnEl.disabled = false; }
-      return;
-    }
+function promptStaffReopenLF(id) {
+  const item = staffLFItems.find((i) => i.id === id);
+  const modalTitle = document.getElementById('lfConfirmTitle');
+  const modalBody  = document.getElementById('lfConfirmBody');
+  const confirmBtn = document.getElementById('lfConfirmBtn');
 
-    toast(res.data?.message || 'Item marked as resolved.', 'success');
+  if (modalTitle) modalTitle.textContent = 'Reopen Listing';
+  if (modalBody)  modalBody.textContent  = 'Reopen this resolved listing and make it active again?';
 
-    // Update in-memory and UI
-    const item = staffLFItems.find((i) => i.id === id);
-    if (item) item.status = 'resolved';
+  if (confirmBtn) {
+    confirmBtn.textContent = 'Reopen';
+    confirmBtn.classList.remove('is-loading');
+    confirmBtn.disabled = false;
+    confirmBtn.onclick = async () => {
+      confirmBtn.classList.add('is-loading');
+      confirmBtn.disabled = true;
 
-    const badgeEl = document.getElementById(`staff-lf-status-${id}`);
-    if (badgeEl) {
-      badgeEl.className = 'badge badge-resolved';
-      badgeEl.textContent = 'Resolved';
-    }
-    if (btnEl) {
-      btnEl.style.transition = 'opacity var(--transition-fast)';
-      btnEl.style.opacity = '0';
-      setTimeout(() => { if (btnEl.parentElement) btnEl.parentElement.innerHTML = ''; }, 200);
-    }
-  } catch (err) {
-    toast('Network error. Please try again.', 'error');
-    if (btnEl) { btnEl.classList.remove('is-loading'); btnEl.disabled = false; }
+      try {
+        const res = await fetchJSON('../api/lostfound_reopen.php', {
+          method: 'POST',
+          body: { id },
+        });
+
+        if (!res.ok) {
+          toast(res.error || 'Could not reopen listing.', 'error');
+          confirmBtn.classList.remove('is-loading');
+          confirmBtn.disabled = false;
+          return;
+        }
+
+        closeModal();
+        toast('Item reopened.', 'success');
+
+        if (item) {
+          item.status = 'active';
+          item.resolved_at = null;
+          item.resolved_by_role = null;
+        }
+
+        const statusFilter = document.getElementById('staffLFStatusFilter')?.value || 'active';
+        const row = document.getElementById(`staff-lf-${id}`);
+        if (statusFilter === 'resolved' && row) {
+          row.style.transition = 'opacity var(--transition-normal), transform var(--transition-normal)';
+          row.style.opacity = '0';
+          row.style.transform = 'translateX(-8px)';
+          setTimeout(() => {
+            applyStaffLFFilters();
+          }, 200);
+        } else {
+          applyStaffLFFilters();
+        }
+      } catch (err) {
+        toast('Network error. Please try again.', 'error');
+        confirmBtn.classList.remove('is-loading');
+        confirmBtn.disabled = false;
+      }
+    };
   }
+
+  openModal('lfConfirmModal');
 }
 
 // ------------------------------------------------------------------------------
@@ -2035,8 +2235,12 @@ window.initStaffComplaints = initStaffComplaints;
 window.initStaffNotices = initStaffNotices;
 window.filterStaffComplaints = filterStaffComplaints;
 window.initStaffLostFound = initStaffLostFound;
-window.filterStaffLostFound = filterStaffLostFound;
-window.staffResolveLFItem = staffResolveLFItem;
+window.applyStaffLFFilters = applyStaffLFFilters;
+window.filterStaffLostFound = applyStaffLFFilters;
+window.staffResolveLFItem = promptStaffResolveLF;
+window.promptStaffResolveLF = promptStaffResolveLF;
+window.promptStaffReopenLF = promptStaffReopenLF;
+window.stopStaffLFTimer = stopStaffLFTimer;
 window.updateStaffComplaintStatus = updateStaffComplaintStatus;
 window.deleteStaffNotice = deleteStaffNotice;
 window.decideStudent = decideStudent;

@@ -34,7 +34,7 @@ Built with **plain HTML/CSS/JS + PHP 8 (PDO) + MySQL**, targeting **XAMPP**. No 
 | **Notices** | View notices for own hostel | Wardens: post and delete notices |
 | **Mess Menu** | View shared weekly menu; rate today's meals (once per meal per day) | Wardens: edit menu items inline |
 | **Mess Analytics** | — | View average ratings and feedback counts by day/meal |
-| **Lost & Found** | Report lost/found items with optional photo (JPG/PNG/WebP, max 2 MB); view hostel listings; mark **own** posts resolved | View all hostel listings; mark **any** active listing resolved |
+| **Lost & Found** | Report lost/found items with optional photo (JPG/PNG/WebP, max 2 MB); view hostel listings; mark **own** posts resolved | View all hostel listings with type/status/text filters; thumbnail preview; mark **any** active listing resolved; **wardens can reopen** resolved listings; 30s auto-refresh |
 | **Student Approval** | View own status (pending / approved / rejected) | Wardens: approve or reject pending registrations |
 | **Emergency Contacts** | View hostel emergency contacts | — |
 
@@ -61,7 +61,8 @@ hostel_management/
 │   ├── complaint_status.php
 │   ├── lostfound_create.php   ← inline upload: same rules as complaint_create
 │   ├── lostfound_list.php
-│   ├── lostfound_resolve.php
+│   ├── lostfound_reopen.php   ← wardens only: reopen resolved listing
+│   ├── lostfound_resolve.php  ← students (own) or staff (any in hostel)
 │   ├── media.php              ← streams uploads after auth check
 │   ├── menu_update.php
 │   ├── mess_analytics.php
@@ -71,6 +72,7 @@ hostel_management/
 │   ├── notice_delete.php
 │   ├── notice_list.php
 │   ├── staff_complaint_list.php
+│   ├── staff_lostfound_list.php ← staff lost & found desk with resolution details
 │   ├── student_decide.php
 │   └── student_pending.php
 ├── public/
@@ -201,6 +203,8 @@ erDiagram
         varchar image_path
         date date_logged
         enum status
+        datetime resolved_at
+        enum resolved_by_role
     }
 
     students ||--o{ complaints : "raises"
@@ -464,7 +468,9 @@ All endpoints return `{"ok": bool, "data"?: ..., "error"?: string}`. All mutatin
 | `api/mess_analytics.php` | GET | staff | Rating analytics |
 | `api/lostfound_create.php` | POST | student | Report lost/found item (optional image upload) |
 | `api/lostfound_list.php` | GET | any | Hostel lost & found listings |
+| `api/staff_lostfound_list.php` | GET | staff | Staff lost & found desk with resolution details |
 | `api/lostfound_resolve.php` | POST | student (own) or staff (any in hostel) | Mark listing resolved |
+| `api/lostfound_reopen.php` | POST | warden | Reopen a resolved listing |
 | `api/media.php` | GET | authenticated | Stream complaint or lost-found attachment |
 | `api/student_pending.php` | GET | staff | Pending registrations |
 | `api/student_decide.php` | POST | warden | Approve or reject student |
@@ -538,6 +544,18 @@ ALTER TABLE complaints
   ADD COLUMN image_path VARCHAR(255) NULL DEFAULT NULL
   AFTER description;
 ```
+
+### Add resolution tracking to lost & found
+
+If you created your database before staff resolution tracking was added:
+
+```sql
+ALTER TABLE lost_found
+  ADD COLUMN resolved_at DATETIME NULL AFTER status,
+  ADD COLUMN resolved_by_role ENUM('student','warden','caretaker') NULL AFTER resolved_at;
+```
+
+Existing resolved rows will keep `NULL` for both columns (the UI displays these as em dashes). Fresh resolutions populate `resolved_at` with the timestamp and `resolved_by_role` with `'student'`, `'warden'`, or `'caretaker'`. Reopening a listing by a warden resets both columns to `NULL`.
 
 ### Add snacks meal type
 

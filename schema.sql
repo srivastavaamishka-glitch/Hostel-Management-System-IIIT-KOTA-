@@ -149,6 +149,8 @@ CREATE TABLE IF NOT EXISTS `lost_found` (
     `image_path` VARCHAR(255) NULL DEFAULT NULL,
     `date_logged` DATE NOT NULL,
     `status` ENUM('active', 'resolved') NOT NULL DEFAULT 'active',
+    `resolved_at` DATETIME NULL DEFAULT NULL,
+    `resolved_by_role` ENUM('student', 'warden', 'caretaker') NULL DEFAULT NULL,
     INDEX `idx_lost_found_hostel_status` (`hostel_type`, `status`),
     INDEX `idx_lost_found_student` (`student_id`),
     CONSTRAINT `fk_lost_found_student`
