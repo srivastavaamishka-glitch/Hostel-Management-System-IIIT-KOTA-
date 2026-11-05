@@ -54,3 +54,4 @@ try {
     error_log('Staff Lost and Found List DB Error: ' . $e->getMessage());
     json_out(false, null, 'Failed to retrieve lost and found directory.', 500);
 }
+

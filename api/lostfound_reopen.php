@@ -59,3 +59,4 @@ try {
     error_log('Lost and Found Reopen DB Error: ' . $e->getMessage());
     json_out(false, null, 'Failed to reopen listing.', 500);
 }
+
