@@ -38,6 +38,17 @@ Built with **plain HTML/CSS/JS + PHP 8 (PDO) + MySQL**, targeting **XAMPP**. No 
 | **Student Approval** | View own status (pending / approved / rejected) | Wardens: approve or reject pending registrations |
 | **Emergency Contacts** | View hostel emergency contacts | — |
 
+#### Lost & Found Permission Matrix
+
+| Action | Student | Caretaker | Warden |
+|---|---|---|---|
+| View own hostel posts | Yes | Yes | Yes |
+| Resolve a post | Own active posts only | Any active post in own hostel | Any active post in own hostel |
+| Reopen a resolved post | No | No | Any resolved post in own hostel |
+| Edit / delete a post | No | No | No |
+
+*All cross-hostel actions are strictly rejected server-side with 403 Forbidden.*
+
 **Security highlights:** PDO prepared statements, `ATTR_EMULATE_PREPARES=false`, role and hostel scope enforced server-side from `$_SESSION` only, CSRF token on every mutating request, brute-force rate limiting on login, `HttpOnly + SameSite=Strict` session cookies, 30-min idle timeout, uploaded files stored outside web root and streamed through `api/media.php`.
 
 ---
@@ -427,12 +438,21 @@ Students must register via the **Sign Up** tab on `index.php`. The college ID mu
 ### 5. Test staff features (Caretaker)
 
 - Log in as `caretaker_boys` / `CaretakerBoys@123`.
-- **Complaints** → update status to "in-progress", then "resolved". Badge color transitions.
-- **Lost & Found** → go to the Lost & Found tab; view all hostel listings. Click **Mark Resolved** on any active listing — staff may resolve any item in their hostel (not just their own).
+- **Complaints Desk** → update status to "in-progress", then "resolved". Badge color transitions.
+- **Lost & Found Desk** → view all boys hostel listings.
+  - Filter by Type (All / Lost / Found) and Status (Active / Resolved / All).
+  - Search by item description or poster college ID; note the live item count updates.
+  - Click any photo thumbnail to preview the full attachment in the modal.
+  - Click **Mark Resolved** on any active listing → confirmation modal appears → confirm.
+  - The row status transitions to "Resolved", displays the resolver role (`caretaker`) and timestamp, and fades out if "Active" filter is active.
+  - Verify caretakers do *not* see a "Reopen" button on resolved items.
 
 ### 6. Test warden-only features
 
 - Log in as `warden_boys` / `WardenBoys@123`.
+- **Lost & Found Desk (Reopen)** → switch Status filter to "Resolved" or "All".
+  - Click **Reopen** on any resolved post → confirmation modal appears → confirm.
+  - The status badge transitions back to "Active" and the listing reappears under the "Active" filter.
 - **Notices** → post a notice; verify it appears in the student portal.
 - **Mess Menu Editor** → edit an item inline, save. Verify the update appears.
 - **Mess Analytics** → view rating data (requires at least one student rating submitted first).
@@ -647,7 +667,7 @@ Ensure cookies are enabled in your browser for `localhost`. Sessions use `HttpOn
 
 ## Known Limitations
 
-- **Lost & Found resolve:** students can resolve only their own listings. Staff (warden or caretaker) can resolve any active listing in their hostel — useful when a poster leaves or is expelled.
+- **Lost & Found resolution permissions:** students can resolve only their own active listings. Staff (warden and caretaker) can resolve any active listing in their hostel. Wardens can additionally reopen resolved listings, restoring their status to active. All actions record resolution audit metadata (`resolved_at`, `resolved_by_role`) or reset them upon reopen.
 - **Password complexity:** enforced client-side (live feedback) and server-side (PHP). Rules: min 8 characters, at least one uppercase letter, one lowercase letter, one digit, and one special character.
 - **No email verification:** college ID format is validated by regex but no actual email is sent.
 - **snacks meal type:** not in the current schema. See [Upgrading an Existing Database](#upgrading-an-existing-database) to add it.
