@@ -282,6 +282,7 @@ async function loadSection(name, customUrl) {
     void contentEl.offsetWidth; // Force reflow to restart animation
     contentEl.innerHTML = templateEl.innerHTML;
     contentEl.classList.add('fade-in');
+    initPasswordToggles();
     document.dispatchEvent(new CustomEvent('sectionLoaded', { detail: { name } }));
     return;
   }
@@ -312,6 +313,7 @@ async function loadSection(name, customUrl) {
     }
 
     contentEl.classList.add('fade-in');
+    initPasswordToggles();
     document.dispatchEvent(new CustomEvent('sectionLoaded', { detail: { name } }));
   } catch (err) {
     toast(err.message || 'Error loading section', 'error');
@@ -319,9 +321,71 @@ async function loadSection(name, customUrl) {
 }
 
 // ------------------------------------------------------------------------------
-// Mobile Sidebar Toggle Initialization
+// Interactive Helpers: Show/Hide Password & Mobile Sidebar Navigation
 // ------------------------------------------------------------------------------
+function initPasswordToggles() {
+  document.querySelectorAll('.password-toggle-btn').forEach((btn) => {
+    if (btn.dataset.initialized) return;
+    btn.dataset.initialized = 'true';
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const targetId = btn.getAttribute('data-target');
+      const input = document.getElementById(targetId);
+      if (!input) return;
+
+      const isPassword = (input.type === 'password');
+      input.type = isPassword ? 'text' : 'password';
+      btn.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+      btn.innerHTML = isPassword
+        ? `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`
+        : `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+    });
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  initPasswordToggles();
+
+  // Sticky header soft shadow once page is scrolled (Requirement 2)
+  const appTopHeader = document.getElementById('appTopHeader') || document.querySelector('.app-top-header');
+  if (appTopHeader) {
+    const updateHeaderShadow = () => {
+      if (window.scrollY > 8) {
+        appTopHeader.classList.add('is-scrolled');
+      } else {
+        appTopHeader.classList.remove('is-scrolled');
+      }
+    };
+    window.addEventListener('scroll', updateHeaderShadow, { passive: true });
+    updateHeaderShadow();
+  }
+
+  // Set data-label attributes for stacked table cards on phones (Requirement 7)
+  const applyTableLabels = (root = document) => {
+    root.querySelectorAll('table').forEach((table) => {
+      const headers = Array.from(table.querySelectorAll('thead th')).map((th) => th.textContent.trim());
+      if (headers.length === 0) return;
+      table.querySelectorAll('tbody tr').forEach((tr) => {
+        const cells = tr.querySelectorAll('td');
+        cells.forEach((td, idx) => {
+          if (!td.getAttribute('data-label') && headers[idx]) {
+            td.setAttribute('data-label', headers[idx]);
+          }
+        });
+      });
+    });
+  };
+
+  applyTableLabels();
+
+  // Watch for dynamic table updates across all sections
+  if (typeof MutationObserver !== 'undefined' && document.body) {
+    const tableObserver = new MutationObserver(() => {
+      applyTableLabels(document);
+    });
+    tableObserver.observe(document.body, { childList: true, subtree: true });
+  }
+
   const mobileToggle = document.querySelector('.mobile-toggle');
   const sidebar = document.querySelector('.sidebar');
   const backdrop = document.querySelector('.sidebar-backdrop');
@@ -337,6 +401,15 @@ document.addEventListener('DOMContentLoaded', () => {
       sidebar.classList.remove('is-open');
     });
   }
+
+  // Auto-close sidebar on mobile after selecting a navigation tab
+  document.querySelectorAll('.sidebar .nav-link').forEach((link) => {
+    link.addEventListener('click', () => {
+      if (window.innerWidth <= 768 && sidebar) {
+        sidebar.classList.remove('is-open');
+      }
+    });
+  });
 });
 
 // ------------------------------------------------------------------------------
@@ -2248,5 +2321,6 @@ window.initStaffMessSection = initStaffMessSection;
 window.loadStaffMessAnalytics = loadStaffMessAnalytics;
 window.loadStaffMessMenu = loadStaffMessMenu;
 window.openMenuEditModal = openMenuEditModal;
+window.initPasswordToggles = initPasswordToggles;
 
 

@@ -29,53 +29,84 @@ $commonContacts = $contactsData['common'] ?? [];
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="csrf" content="<?= htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8') ?>">
-  <title>Staff Portal (<?= ucfirst($role) ?>) | IIIT Kota</title>
-  <link rel="stylesheet" href="assets/css/style.css?v=<?= filemtime(__DIR__ . '/assets/css/style.css') ?>">
+  <title>Staff Portal (<?= ucfirst($role) ?>) | Indian Institute of Information Technology, Kota</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css?v=7">
   <style>
     .user-profile-badge {
       display: flex;
       flex-direction: column;
-      gap: 2px;
-      margin-top: var(--space-2);
+      gap: 3px;
+      margin-top: var(--space-3);
+      padding: var(--space-3);
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
       font-size: var(--text-xs);
-      color: var(--text-secondary);
+      color: var(--text-muted);
+    }
+    .user-profile-badge strong {
+      color: var(--text);
+      font-size: var(--text-sm);
+    }
+    .user-profile-badge span {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--accent);
     }
     .contacts-panel {
       margin-top: auto;
-      padding: var(--space-4) var(--space-4);
-      border-top: 1px solid var(--border-hairline);
+      padding: var(--space-4);
+      border-top: 1px solid var(--border);
       background: var(--bg-subtle);
       font-size: var(--text-xs);
     }
     .contacts-title {
       font-weight: var(--font-weight-semibold);
-      color: var(--text-main);
-      margin-bottom: var(--space-2);
+      color: var(--text);
+      margin-bottom: var(--space-3);
       text-transform: uppercase;
       letter-spacing: 0.05em;
       display: flex;
       align-items: center;
-      gap: var(--space-1);
+      gap: var(--space-2);
     }
     .contact-item {
       margin-bottom: var(--space-2);
       line-height: 1.35;
+      padding: var(--space-2) var(--space-3);
+      background: var(--bg-surface);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
     }
     .contact-role {
       font-weight: var(--font-weight-medium);
-      color: var(--text-main);
+      color: var(--text);
+      font-size: 11.5px;
     }
     .contact-phone {
       color: var(--accent);
       font-family: var(--font-mono);
       font-size: 11px;
+      font-weight: var(--font-weight-medium);
+      margin-top: 2px;
+    }
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-subtle);
+      overflow: hidden;
     }
   </style>
 </head>
 <body data-role="<?= htmlspecialchars($role, ENT_QUOTES, 'UTF-8') ?>" data-hostel="<?= htmlspecialchars($hostelType, ENT_QUOTES, 'UTF-8') ?>">
-  <div class="app-shell">
-    <!-- Mobile Navigation Bar -->
-    <header class="mobile-bar">
+  <!-- Task 2b: Sticky Top Header Bar (Desktop & Mobile) -->
+  <header class="app-top-header" id="appTopHeader">
+    <div class="header-left">
       <button class="mobile-toggle" aria-label="Toggle navigation">
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -83,17 +114,45 @@ $commonContacts = $contactsData['common'] ?? [];
           <line x1="3" y1="18" x2="21" y2="18"></line>
         </svg>
       </button>
-      <div class="brand-title">Staff Administration</div>
-      <div style="width: 24px;"></div>
-    </header>
+      <a href="staff.php" class="header-brand-link" title="Staff Administration">
+        <div class="header-logo-badge">
+          <img src="images/iiitkota.webp" onerror="this.onerror=null; this.src='https://cdn.iiitkota.ac.in/site/iiitkota.webp';" alt="IIIT Kota logo" class="header-logo-img">
+        </div>
+        <div class="header-titles">
+          <span class="header-institute-name desktop-title">Indian Institute of Information Technology, Kota</span>
+          <span class="header-institute-name mobile-title">IIIT Kota</span>
+          <span class="header-portal-subtitle">Staff Administration &bull; <?= ucfirst($role) ?></span>
+        </div>
+      </a>
+    </div>
 
-    <!-- Fixed Left Sidebar -->
+    <div class="header-right">
+      <div class="header-user-badge desktop-only">
+        <span class="header-user-id"><?= htmlspecialchars($staffName, ENT_QUOTES, 'UTF-8') ?></span>
+        <span class="header-user-meta"><?= ucfirst($role) ?> &bull; <?= ucfirst($hostelType) ?> Hostel</span>
+      </div>
+      <button type="button" class="btn btn-ghost btn-sm header-logout-btn" onclick="logoutUser()" title="Sign Out">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+          <polyline points="16 17 21 12 16 7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+        <span class="desktop-only" style="margin-left: 4px;">Sign Out</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="app-shell">
+    <!-- Fixed Left Sidebar (sits directly under sticky top header) -->
     <aside class="sidebar">
       <div class="sidebar-header">
-        <div class="brand-title">IIIT Kota Hostels</div>
+        <div class="brand-title">
+          <span>🏠</span>
+          <span>IIIT Kota Hostels</span>
+        </div>
         <div class="user-profile-badge">
-          <strong style="color: var(--text-main);"><?= htmlspecialchars($staffName, ENT_QUOTES, 'UTF-8') ?></strong>
-          <span><?= ucfirst($role) ?> &bull; <?= ucfirst($hostelType) ?> Hostel</span>
+          <strong><?= htmlspecialchars($staffName, ENT_QUOTES, 'UTF-8') ?></strong>
+          <span>🛡️ <?= ucfirst($role) ?> &bull; <?= ucfirst($hostelType) ?> Hostel</span>
         </div>
       </div>
 
@@ -143,7 +202,7 @@ $commonContacts = $contactsData['common'] ?? [];
           Lost &amp; Found Desk
         </button>
 
-        <div style="margin-top: var(--space-4); padding-top: var(--space-2); border-top: 1px solid var(--border-hairline);">
+        <div style="margin-top: var(--space-4); padding-top: var(--space-2); border-top: 1px solid var(--border);">
           <button type="button" class="nav-link" style="color: var(--color-danger);" onclick="logoutUser()">
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -158,7 +217,7 @@ $commonContacts = $contactsData['common'] ?? [];
       <!-- Persistent Emergency Contacts Section (From contacts.php) -->
       <div class="contacts-panel">
         <div class="contacts-title">
-          <svg class="icon" style="width: 12px; height: 12px; color: var(--color-danger);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg class="icon" style="width: 13px; height: 13px; color: var(--color-danger);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
           </svg>
           Hostel Contacts
@@ -194,7 +253,7 @@ $commonContacts = $contactsData['common'] ?? [];
       <div class="content-container" id="content">
         <!-- Default Section: Approvals -->
         <div class="page-header">
-          <h1>Student Registration Approvals</h1>
+          <h1>👥 Student Registration Approvals</h1>
           <p>Pending accounts waiting for admission approval into <?= ucfirst($hostelType) ?> Hostel.</p>
         </div>
 
@@ -232,7 +291,7 @@ $commonContacts = $contactsData['common'] ?? [];
   <!-- Client-side tab templates -->
   <template id="template-approvals">
     <div class="page-header">
-      <h1>Student Registration Approvals</h1>
+      <h1>👥 Student Registration Approvals</h1>
       <p>Pending accounts waiting for admission approval into <?= ucfirst($hostelType) ?> Hostel.</p>
     </div>
 
@@ -269,12 +328,12 @@ $commonContacts = $contactsData['common'] ?? [];
     <div class="page-header">
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-4);">
         <div>
-          <h1>Hostel Complaints Desk</h1>
+          <h1>🛠️ Hostel Complaints Desk</h1>
           <p>Active issues and work orders in <?= ucfirst($hostelType) ?> Hostel.</p>
         </div>
         <div style="display: flex; gap: var(--space-2); align-items: center;">
-          <label for="staffComplaintFilterCategory" style="font-size: var(--text-xs); color: var(--text-secondary); font-weight: var(--font-weight-medium);">Filter:</label>
-          <select class="form-select form-select-sm" id="staffComplaintFilterCategory" onchange="filterStaffComplaints(this.value)" style="width: auto;">
+          <label for="staffComplaintFilterCategory" style="font-size: var(--text-xs); color: var(--text-muted); font-weight: var(--font-weight-medium);">Filter:</label>
+          <select class="form-select form-select-sm" id="staffComplaintFilterCategory" onchange="filterStaffComplaints(this.value)" style="width: auto; min-height: 38px;">
             <option value="">All Categories</option>
             <option value="Electrical">Electrical</option>
             <option value="Plumbing">Plumbing</option>
@@ -316,13 +375,15 @@ $commonContacts = $contactsData['common'] ?? [];
 
   <template id="template-notices">
     <div class="page-header">
-      <h1>Official Notice Broadcasts</h1>
+      <h1>📢 Official Notice Broadcasts</h1>
       <p>Publish administrative circulars to <?= ucfirst($hostelType) ?> Hostel residents.</p>
     </div>
 
     <!-- Publish Notice Card -->
-    <div style="background: var(--bg-surface); border: 1px solid var(--border-hairline); border-radius: var(--radius-lg); padding: var(--space-6); margin-bottom: var(--space-8);">
-      <h3 style="margin-bottom: var(--space-4);">Broadcast New Notice</h3>
+    <div class="card" style="padding: var(--space-6); margin-bottom: var(--space-8);">
+      <h3 style="margin-bottom: var(--space-4); display: flex; align-items: center; gap: var(--space-2);">
+        <span>📣</span> Broadcast New Notice
+      </h3>
       <form id="staffNoticeForm">
         <div class="form-group" style="margin-bottom: var(--space-4);">
           <label class="form-label" for="staffNoticeMessage">Notice Content</label>
@@ -358,11 +419,11 @@ $commonContacts = $contactsData['common'] ?? [];
     <div class="page-header">
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-4);">
         <div>
-          <h1>Mess Menu &amp; Ratings Analytics</h1>
+          <h1>📊 Mess Menu &amp; Ratings Analytics</h1>
           <p>Shared campus weekly menu and 7-day student satisfaction trends for <?= ucfirst($hostelType) ?> Hostel.</p>
         </div>
         <div>
-          <span class="badge badge-in-progress" style="font-size: var(--text-xs);">
+          <span class="badge badge-in-progress" style="font-size: var(--text-xs); padding: 0.35rem 0.75rem;">
             <?= ucfirst($role) ?> Mode (<?= $role === 'warden' ? 'Editable Menu' : 'Read-Only Menu' ?>)
           </span>
         </div>
@@ -371,20 +432,20 @@ $commonContacts = $contactsData['common'] ?? [];
 
     <!-- Summary KPI cards -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-4); margin-bottom: var(--space-6);">
-      <div style="background: var(--bg-surface); border: 1px solid var(--border-hairline); border-radius: var(--radius-md); padding: var(--space-4);">
-        <div style="font-size: var(--text-xs); color: var(--text-muted); margin-bottom: var(--space-1);">7-DAY AVERAGE RATING</div>
+      <div class="card" style="padding: var(--space-4);">
+        <div style="font-size: var(--text-xs); color: var(--text-muted); margin-bottom: var(--space-1); text-transform: uppercase; letter-spacing: 0.05em;">7-DAY AVERAGE RATING</div>
         <div style="display: flex; align-items: baseline; gap: var(--space-2);">
-          <span id="staffMessOverallRating" style="font-size: var(--text-2xl); font-weight: var(--font-weight-semibold); color: var(--text-main); font-family: var(--font-mono);">—</span>
+          <span id="staffMessOverallRating" style="font-size: var(--text-2xl); font-weight: var(--font-weight-semibold); color: var(--accent); font-family: var(--font-mono);">—</span>
           <span style="font-size: var(--text-xs); color: var(--text-muted);">/ 5.0</span>
         </div>
       </div>
-      <div style="background: var(--bg-surface); border: 1px solid var(--border-hairline); border-radius: var(--radius-md); padding: var(--space-4);">
-        <div style="font-size: var(--text-xs); color: var(--text-muted); margin-bottom: var(--space-1);">TOTAL STUDENT RATINGS (7D)</div>
-        <div id="staffMessTotalVotes" style="font-size: var(--text-2xl); font-weight: var(--font-weight-semibold); color: var(--text-main); font-family: var(--font-mono);">—</div>
+      <div class="card" style="padding: var(--space-4);">
+        <div style="font-size: var(--text-xs); color: var(--text-muted); margin-bottom: var(--space-1); text-transform: uppercase; letter-spacing: 0.05em;">TOTAL STUDENT RATINGS (7D)</div>
+        <div id="staffMessTotalVotes" style="font-size: var(--text-2xl); font-weight: var(--font-weight-semibold); color: var(--text); font-family: var(--font-mono);">—</div>
       </div>
-      <div style="background: var(--bg-surface); border: 1px solid var(--border-hairline); border-radius: var(--radius-md); padding: var(--space-4);">
-        <div style="font-size: var(--text-xs); color: var(--text-muted); margin-bottom: var(--space-1);">MONITORED HOSTEL</div>
-        <div style="font-size: var(--text-lg); font-weight: var(--font-weight-semibold); color: var(--text-main); text-transform: capitalize;"><?= ucfirst($hostelType) ?> Hostel</div>
+      <div class="card" style="padding: var(--space-4);">
+        <div style="font-size: var(--text-xs); color: var(--text-muted); margin-bottom: var(--space-1); text-transform: uppercase; letter-spacing: 0.05em;">MONITORED HOSTEL</div>
+        <div style="font-size: var(--text-lg); font-weight: var(--font-weight-semibold); color: var(--text); text-transform: capitalize;"><?= ucfirst($hostelType) ?> Hostel</div>
       </div>
     </div>
 
@@ -440,28 +501,28 @@ $commonContacts = $contactsData['common'] ?? [];
 
   <template id="template-lost_found">
     <div class="page-header">
-      <h1>Lost &amp; Found Desk</h1>
+      <h1>🔍 Lost &amp; Found Desk</h1>
       <p>Manage lost &amp; found listings for <?= ucfirst($hostelType) ?> Hostel.</p>
     </div>
 
     <!-- Filter Bar -->
     <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4); flex-wrap: wrap;">
-      <label for="staffLFTypeFilter" style="font-size: var(--text-xs); color: var(--text-secondary); font-weight: var(--font-weight-medium);">Type:</label>
-      <select class="form-select form-select-sm" id="staffLFTypeFilter" onchange="applyStaffLFFilters()" style="width: auto;">
+      <label for="staffLFTypeFilter" style="font-size: var(--text-xs); color: var(--text-muted); font-weight: var(--font-weight-medium);">Type:</label>
+      <select class="form-select form-select-sm" id="staffLFTypeFilter" onchange="applyStaffLFFilters()" style="width: auto; min-height: 38px;">
         <option value="all">All</option>
         <option value="lost">Lost</option>
         <option value="found">Found</option>
       </select>
 
-      <label for="staffLFStatusFilter" style="font-size: var(--text-xs); color: var(--text-secondary); font-weight: var(--font-weight-medium);">Status:</label>
-      <select class="form-select form-select-sm" id="staffLFStatusFilter" onchange="applyStaffLFFilters()" style="width: auto;">
+      <label for="staffLFStatusFilter" style="font-size: var(--text-xs); color: var(--text-muted); font-weight: var(--font-weight-medium);">Status:</label>
+      <select class="form-select form-select-sm" id="staffLFStatusFilter" onchange="applyStaffLFFilters()" style="width: auto; min-height: 38px;">
         <option value="active" selected>Active</option>
         <option value="resolved">Resolved</option>
         <option value="all">All</option>
       </select>
 
-      <input class="form-input" id="staffLFSearch" type="search" placeholder="Search description or ID…" oninput="applyStaffLFFilters()" style="width: 220px; height: 32px; padding: 0 var(--space-2); font-size: var(--text-sm);">
-      <span id="staffLFCount" style="font-size: var(--text-xs); color: var(--text-secondary); margin-left: auto;"></span>
+      <input class="form-input" id="staffLFSearch" type="search" placeholder="Search description or ID…" oninput="applyStaffLFFilters()" style="width: 220px; height: 38px; min-height: 38px; padding: 0 var(--space-3); font-size: var(--text-sm);">
+      <span id="staffLFCount" style="font-size: var(--text-xs); color: var(--text-muted); margin-left: auto;"></span>
     </div>
 
     <!-- Loading state -->
@@ -471,7 +532,7 @@ $commonContacts = $contactsData['common'] ?? [];
 
     <!-- Table -->
     <div class="table-container" id="staffLFTableContainer" style="display: none;">
-      <table>
+      <table class="table">
         <thead>
           <tr>
             <th>Date</th>
@@ -511,7 +572,7 @@ $commonContacts = $contactsData['common'] ?? [];
           </svg>
         </button>
       </div>
-      <div class="modal-body" style="text-align: center; padding: var(--space-4); background: #00000005;">
+      <div class="modal-body" style="text-align: center; padding: var(--space-4); background: var(--bg-surface);">
         <img id="modalComplaintImg" src="" alt="Attachment Preview" style="max-width: 100%; max-height: 70vh; border-radius: var(--radius-md); object-fit: contain;">
       </div>
       <div class="modal-footer">
@@ -533,7 +594,7 @@ $commonContacts = $contactsData['common'] ?? [];
         </button>
       </div>
       <div class="modal-body" style="padding: var(--space-5);">
-        <p id="lfConfirmBody" style="color: var(--text-secondary); margin: 0;"></p>
+        <p id="lfConfirmBody" style="color: var(--text-muted); margin: 0;"></p>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
@@ -559,7 +620,7 @@ $commonContacts = $contactsData['common'] ?? [];
         <div class="modal-body" style="padding: var(--space-5);">
           <div style="margin-bottom: var(--space-4); display: flex; gap: var(--space-2); align-items: center;">
             <span class="badge badge-in-progress" id="menuEditDayBadge">Mon</span>
-            <strong id="menuEditMealType" style="text-transform: capitalize; color: var(--text-main);">Breakfast</strong>
+            <strong id="menuEditMealType" style="text-transform: capitalize; color: var(--text);">Breakfast</strong>
           </div>
           <div class="form-group" style="margin-bottom: 0;">
             <label class="form-label" for="menuEditItemsInput">Scheduled Menu Items</label>
@@ -576,7 +637,7 @@ $commonContacts = $contactsData['common'] ?? [];
     </div>
   </div>
 
-  <script src="assets/js/app.js?v=<?= filemtime(__DIR__ . '/assets/js/app.js') ?>"></script>
+  <script src="assets/js/app.js?v=7"></script>
   <script>
     // Initialize default section (Approvals) on page load
     document.addEventListener('DOMContentLoaded', () => {
@@ -597,4 +658,3 @@ $commonContacts = $contactsData['common'] ?? [];
   </script>
 </body>
 </html>
-
